@@ -3,15 +3,13 @@ import select
 import sys
 import time
 import getopt
+import os
 
-PRIMARYIP = "192.168.1.7"
+PRIMARYIP = "192.168.1.10"
 PRIMARYPORT = 19761
 
-BACKUPIP = "192.168.1.10"
-BACKUPPORT = 19764
-
-EMERGIP = "192.168.1.10"
-EMERGPORT = 19764
+BACKUPIP = "192.168.1.7"
+BACKUPPORT = 19761
 
 try:
 	opts, args = getopt.getopt(sys.argv[1:],"p:l:")
@@ -23,18 +21,18 @@ while(True):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
 		sock.connect((PRIMARYIP,PRIMARYPORT))
-		print("Connected to Primary");
+		with open("/home/pi/databridge.log", "w") as f:
+			f.write("Primary")
 	except socket.error:
 		try:
 			sock.connect((BACKUPIP,BACKUPPORT))
-			print("Connected to Backup");
+			with open("/home/pi/databridge.log", "w") as f:
+				f.write("Backup")
 		except socket.error:
-			try:
-				sock.connect((EMERGIP,EMERGPORT))
-				print("Connected to Emergency");
-			except socket.error:
-				print("None of the specified servers are currently available");
-				sys.exit(2)
+			with open("/home/pi/databridge.log", "w") as f:
+                                f.write("Not Connected")
+			os.system('cat' ' /home/pi/offairdata.raw')
+			sys.exit(2)
 
 	try:
 		sock.sendall(bytes("HELO", "utf-8"))
@@ -45,6 +43,7 @@ while(True):
 				received = sock.recv(672)
 				sys.stdout.buffer.write(received)
 			time.sleep(0.02 - ((time.time() - starttime) % 0.02))
-	except socket.error:
-		print("Connection Lost");
-		time.sleep(1)
+
+	except:
+		with open("/home/pi/databridge.log", "w") as f:
+			f.write("Connection Lost")
